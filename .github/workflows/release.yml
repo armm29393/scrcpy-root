@@ -294,6 +294,15 @@ jobs:
         run: |
             brew install meson nasm libiconv zlib automake autoconf libtool
 
+      # wget on this runner fails the TLS handshake with ffmpeg.org; fetch the
+      # tarball with curl where get_file looks first (it still checks the sum)
+      - name: Prefetch ffmpeg
+        run: |
+            VERSION=$(sed -n 's/^VERSION=//p' app/deps/ffmpeg.sh)
+            mkdir -p app/deps/work/sources
+            curl -fsSL --retry 5 -o "app/deps/work/sources/ffmpeg-$VERSION.tar.xz" \
+                "https://ffmpeg.org/releases/ffmpeg-$VERSION.tar.xz"
+
       - name: Build
         env:
           # the default Xcode (and macOS SDK) version can be found at

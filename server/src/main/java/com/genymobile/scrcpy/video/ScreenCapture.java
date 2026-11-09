@@ -23,6 +23,7 @@ import android.graphics.Rect;
 import android.hardware.display.VirtualDisplay;
 import android.os.Build;
 import android.os.IBinder;
+import android.system.Os;
 import android.view.Surface;
 
 import java.io.IOException;
@@ -38,6 +39,9 @@ public class ScreenCapture extends SurfaceCapture {
     private final float angle;
 
     private VideoConstraints videoConstraints;
+
+    /** Below AID_SHELL (2000): launched with --root, as AID_SYSTEM. */
+    private static final boolean RUNNING_AS_SYSTEM = Os.getuid() < 2000;
 
     private DisplayInfo displayInfo;
     private Size videoSize;
@@ -129,7 +133,15 @@ public class ScreenCapture extends SurfaceCapture {
             inputSize = videoSize;
         }
 
-        try {
+        if (RUNNING_AS_SYSTEM) {
+            // Launched with --root: only a SurfaceControl display can be secure, and a secure one shows FLAG_SECURE
+            // windows that a DisplayManager mirror leaves black
+            try {
+                startSurfaceControlDisplay(surface, inputSize);
+            } catch (Exception e) {
+                throw new IOException("Could not create a secure display", e);
+            }
+        } else try {
             virtualDisplay = ServiceManager.getDisplayManager()
                     .createVirtualDisplay("scrcpy", inputSize.getWidth(), inputSize.getHeight(), displayId, surface);
             Ln.d("Display: using DisplayManager API");
@@ -143,12 +155,7 @@ public class ScreenCapture extends SurfaceCapture {
                 }
             } else {
                 try {
-                    display = createDisplay();
-
-                    Size deviceSize = displayInfo.getSize();
-                    int layerStack = displayInfo.getLayerStack();
-                    setDisplaySurface(display, surface, deviceSize.toRect(), inputSize.toRect(), layerStack);
-                    Ln.d("Display: using SurfaceControl API");
+                    startSurfaceControlDisplay(surface, inputSize);
                 } catch (Exception surfaceControlException) {
                     Ln.e("Could not create display using DisplayManager", displayManagerException);
                     Ln.e("Could not create display using SurfaceControl", surfaceControlException);
@@ -207,15 +214,29 @@ public class ScreenCapture extends SurfaceCapture {
         return true;
     }
 
+    private void startSurfaceControlDisplay(Surface surface, Size inputSize) throws Exception {
+        display = createDisplay();
+
+        Size deviceSize = displayInfo.getSize();
+        int layerStack = displayInfo.getLayerStack();
+        setDisplaySurface(display, surface, deviceSize.toRect(), inputSize.toRect(), layerStack);
+        Ln.d("Display: using SurfaceControl API");
+    }
+
     private static IBinder createDisplay() throws Exception {
         // Since Android 12 (preview), secure displays could not be created with shell permissions anymore.
         // On Android 12 preview, SDK_INT is still R (not S), but CODENAME is "S".
         boolean secure = Build.VERSION.SDK_INT < AndroidVersions.API_30_ANDROID_11 || (Build.VERSION.SDK_INT == AndroidVersions.API_30_ANDROID_11
-                && !"S".equals(Build.VERSION.CODENAME));
+                && !"S".equals(Build.VERSION.CODENAME)) || RUNNING_AS_SYSTEM;
         return SurfaceControl.createDisplay("scrcpy", secure);
     }
 
-    private static void setDisplaySurface(IBinder display, Surface surface, Rect deviceRect, Rect displayRect, int layerStack) {
+    private static void setDisplaySurface(IBinder display, Surface surface, Rect deviceRect, Rect displayRect, int layerStack)
+            throws Exception {
+        if (Build.VERSION.SDK_INT >= AndroidVersions.API_34_ANDROID_14) {
+            SurfaceControl.setDisplay(display, surface, deviceRect, displayRect, layerStack);
+            return;
+        }
         SurfaceControl.openTransaction();
         try {
             SurfaceControl.setDisplaySurface(display, surface);

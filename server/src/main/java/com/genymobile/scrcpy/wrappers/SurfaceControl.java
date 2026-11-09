@@ -79,6 +79,9 @@ public final class SurfaceControl {
     }
 
     public static IBinder createDisplay(String name, boolean secure) throws Exception {
+        if (Build.VERSION.SDK_INT >= AndroidVersions.API_34_ANDROID_14) {
+            return DisplayControl.createDisplay(name, secure);
+        }
         return (IBinder) CLASS.getMethod("createDisplay", String.class, boolean.class).invoke(null, name, secure);
     }
 
@@ -183,9 +186,28 @@ public final class SurfaceControl {
 
     public static void destroyDisplay(IBinder displayToken) {
         try {
+            if (Build.VERSION.SDK_INT >= AndroidVersions.API_34_ANDROID_14) {
+                DisplayControl.destroyDisplay(displayToken);
+                return;
+            }
             CLASS.getMethod("destroyDisplay", IBinder.class).invoke(null, displayToken);
         } catch (Exception e) {
             throw new AssertionError(e);
         }
+    }
+
+    /**
+     * Point a display at a surface and a layer stack in one transaction. Android 14 removed the static setters used by
+     * openTransaction()/closeTransaction(); the same calls remain on SurfaceControl.Transaction.
+     */
+    public static void setDisplay(IBinder displayToken, Surface surface, Rect layerStackRect, Rect displayRect, int layerStack)
+            throws Exception {
+        Class<?> transactionClass = Class.forName("android.view.SurfaceControl$Transaction");
+        Object transaction = transactionClass.getConstructor().newInstance();
+        transactionClass.getMethod("setDisplaySurface", IBinder.class, Surface.class).invoke(transaction, displayToken, surface);
+        transactionClass.getMethod("setDisplayProjection", IBinder.class, int.class, Rect.class, Rect.class)
+                .invoke(transaction, displayToken, 0, layerStackRect, displayRect);
+        transactionClass.getMethod("setDisplayLayerStack", IBinder.class, int.class).invoke(transaction, displayToken, layerStack);
+        transactionClass.getMethod("apply").invoke(transaction);
     }
 }

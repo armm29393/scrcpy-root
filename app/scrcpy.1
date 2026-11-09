@@ -571,6 +571,10 @@ Default is "letterbox", unless --flex-display is set, in which case it is "unsca
 By default, scrcpy mirrors only the video if audio capture fails on the device. This option makes scrcpy fail if audio is enabled but does not work.
 
 .TP
+.B \-\-root
+Launch the server as AID_SYSTEM through su (rooted devices only), so that windows with FLAG_SECURE are not black.
+
+.TP
 .BI "\-s, \-\-serial " number
 The device serial number. Mandatory only if several devices are connected to adb.
 

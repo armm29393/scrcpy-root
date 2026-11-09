@@ -219,6 +219,13 @@ execute_server(struct sc_server *server,
     cmd[count++] = "-s";
     cmd[count++] = serial;
     cmd[count++] = "shell";
+    if (params->root) {
+        // AID_SYSTEM: may create a secure display, so FLAG_SECURE windows
+        // are not black
+        cmd[count++] = "su";
+        cmd[count++] = "1000";
+        cmd[count++] = "-c";
+    }
     cmd[count++] = "CLASSPATH=" SC_DEVICE_SERVER_PATH;
     cmd[count++] = "app_process";
 

@@ -73,6 +73,7 @@ enum {
     OPT_VIDEO_SOURCE,
     OPT_AUDIO_SOURCE,
     OPT_KILL_ADB_ON_CLOSE,
+    OPT_ROOT,
     OPT_TIME_LIMIT,
     OPT_PAUSE_ON_EXIT,
     OPT_LIST_CAMERAS,
@@ -854,6 +855,12 @@ static const struct sc_option options[] = {
         .text = "By default, scrcpy mirrors only the video when audio capture "
                 "fails on the device. This option makes scrcpy fail if audio "
                 "is enabled but does not work."
+    },
+    {
+        .longopt_id = OPT_ROOT,
+        .longopt = "root",
+        .text = "Launch the server as AID_SYSTEM through su (rooted devices "
+                "only), so that windows with FLAG_SECURE are not black.",
     },
     {
         .shortopt = 's',
@@ -2894,6 +2901,9 @@ parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
                 break;
             case OPT_KILL_ADB_ON_CLOSE:
                 opts->kill_adb_on_close = true;
+                break;
+            case OPT_ROOT:
+                opts->root = true;
                 break;
             case OPT_TIME_LIMIT:
                 if (!parse_time_limit(optarg, &opts->time_limit)) {

@@ -69,6 +69,7 @@ struct sc_server_params {
     bool cleanup;
     bool power_on;
     bool kill_adb_on_close;
+    bool root;
     bool camera_high_speed;
     bool camera_torch;
     bool vd_destroy_content;

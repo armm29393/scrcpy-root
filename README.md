@@ -1,3 +1,25 @@
+> [!NOTE]
+> **scrcpy-root** is an unofficial build of [scrcpy] v5.0.1 with one added
+> option, `--root`, for **rooted** devices. Official scrcpy is at
+> <https://github.com/Genymobile/scrcpy>; this is not affiliated with it.
+>
+> On Android 12+, scrcpy shows windows marked `FLAG_SECURE` (banking apps,
+> biometric prompts, DRM video) as black. With `--root`, the server runs as
+> `AID_SYSTEM` through `su 1000` and captures through a secure display, so
+> those windows show:
+>
+> ```bash
+> scrcpy --root
+> ```
+>
+> The device needs `su` that `adb shell` may use (Magisk/KernelSU: grant
+> *Shell*). Tested on Android 15. The idea comes from [RiggiG/scrcpy-root]
+> (scrcpy v2.1); this port also handles Android 14+, where the display APIs
+> moved. Without `--root`, it behaves exactly like scrcpy v5.0.1.
+>
+> [scrcpy]: https://github.com/Genymobile/scrcpy
+> [RiggiG/scrcpy-root]: https://github.com/RiggiG/scrcpy-root
+
 > [!WARNING]
 > **This GitHub repo (<https://github.com/Genymobile/scrcpy>) is the only official
 source for the project. Do not download releases from random websites, even if

@@ -79,4 +79,32 @@ public final class DisplayControl {
             return null;
         }
     }
+
+    /**
+     * A display that mirrors a layer stack, as SurfaceControl.createDisplay() made before Android 14 moved it here:
+     * `createDisplay` on Android 14, `createVirtualDisplay` since Android 15.
+     */
+    public static IBinder createDisplay(String name, boolean secure) throws Exception {
+        for (String methodName : new String[] {"createVirtualDisplay", "createDisplay"}) {
+            try {
+                return (IBinder) CLASS.getMethod(methodName, String.class, boolean.class).invoke(null, name, secure);
+            } catch (NoSuchMethodException e) {
+                // try the other name
+            }
+        }
+        throw new NoSuchMethodException("DisplayControl has no createVirtualDisplay or createDisplay(String, boolean)");
+    }
+
+    /** Destroys a display from {@link #createDisplay(String, boolean)}. */
+    public static void destroyDisplay(IBinder displayToken) throws Exception {
+        for (String methodName : new String[] {"destroyVirtualDisplay", "destroyDisplay"}) {
+            try {
+                CLASS.getMethod(methodName, IBinder.class).invoke(null, displayToken);
+                return;
+            } catch (NoSuchMethodException e) {
+                // try the other name
+            }
+        }
+        throw new NoSuchMethodException("DisplayControl has no destroyVirtualDisplay or destroyDisplay(IBinder)");
+    }
 }
